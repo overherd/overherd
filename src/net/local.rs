@@ -45,7 +45,7 @@ pub async fn process(mut socket: TcpStream) {
 }
 
 async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
-    println!(" > BROD COMMAND");
+    println!(" > PUBL COMMAND");
     let mut data_size_buffer = [0; COMMAND_DATA_SIZE + 2];
     let n = socket
         .read(&mut data_size_buffer)
@@ -66,7 +66,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
         return Err(());
     }
 
-    println!(" > BROD COMMAND {data_size}");
+    println!(" > PUBL COMMAND {data_size}");
 
     let mut buffer = Vec::new();
     buffer.resize(data_size, 0);
