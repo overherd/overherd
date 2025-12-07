@@ -1,8 +1,8 @@
+use crate::net::remote::broadcast;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
-use crate::net::remote::{broadcast};
 
 const DATA_SIZE_LIMIT: usize = 5_000_000;
 const COMMAND_SIZE: usize = 4;
@@ -72,7 +72,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
     buffer.resize(data_size, 0);
 
     let n = socket
-        .read_exact(&mut buffer)
+        .read(&mut buffer)
         .await
         .expect("failed to read from socket");
     if n != data_size {

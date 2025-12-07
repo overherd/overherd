@@ -1,3 +1,5 @@
+use std::fs;
+
 use super::comm;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -77,7 +79,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
     buffer.resize(data_size, 0);
 
     let n = socket
-        .read_exact(&mut buffer)
+        .read(&mut buffer)
         .await
         .expect("failed to read from socket");
     if n != data_size {
@@ -88,6 +90,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
 
     // TODO do something with the data
     println!("{}", String::from_utf8_lossy(&buffer));
+    fs::write("dummy", buffer).expect("fuck i failed");
 
     socket
         .write_all(b"OK")
