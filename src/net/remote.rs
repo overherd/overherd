@@ -103,7 +103,8 @@ pub async fn broadcast(data: Vec<u8>) {
     let mut message = Vec::new();
     message.extend_from_slice(BROADCAST_CMD);
     message.extend_from_slice(b" ");
-    message.extend_from_slice(&(data.len() as u32).to_be_bytes());
+    let hex_len = format!("{:08x}", data.len());
+    message.extend_from_slice(hex_len.as_bytes());
     message.extend_from_slice(b" ");
     message.extend_from_slice(&data);
     println!(
