@@ -1,3 +1,4 @@
+// vim: fdm=indent fdn=1
 use crate::net::remote::broadcast;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -89,17 +90,3 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
         .expect("failed to write into socket");
     Ok(())
 }
-
-// async fn client() {
-//     let mut socket = TcpStream::connect(OTHER_IP)
-//         .await
-//         .expect("failed to connect to client");
-//     socket
-//         .write_all(b"hello world!")
-//         .await
-//         .expect("failed to send data to client");
-//
-//     let mut buffer = [0; 1024];
-//     socket.read(&mut buffer).await.expect("fucked up");
-//     println!("{}", String::from_utf8_lossy(&buffer[..1024]));
-// }

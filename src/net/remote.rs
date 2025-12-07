@@ -1,3 +1,4 @@
+// vim: fdm=indent fdn=1
 use std::fs;
 
 use super::comm;
