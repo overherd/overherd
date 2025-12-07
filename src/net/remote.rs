@@ -1,3 +1,4 @@
+use super::comm;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
@@ -6,6 +7,8 @@ use tokio::{
 const DATA_SIZE_LIMIT: usize = 5_000_000;
 const COMMAND_SIZE: usize = 4;
 const COMMAND_DATA_SIZE: usize = 8;
+
+const BROADCAST_CMD: &[u8; 4] = b"BROD";
 
 pub async fn process(mut socket: TcpStream) {
     loop {
@@ -28,7 +31,7 @@ pub async fn process(mut socket: TcpStream) {
         }
 
         let result = match &buffer {
-            b"BROD" => broadcast_parse(&mut socket).await,
+            BROADCAST_CMD => broadcast_parse(&mut socket).await,
             _ => {
                 println!("unrecognized command: {}", String::from_utf8_lossy(&buffer));
                 Err(())
@@ -38,12 +41,16 @@ pub async fn process(mut socket: TcpStream) {
         // Send Error message
         if let Err(_) = result {
             socket.write_all(b"NO").await.expect("");
+            return;
         }
     }
 }
 
+// =============================================
+//             PARSE FUNCTIONS
+
 async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
-    println!(" > BROD COMMAND");
+    println!(" > BRODCAST COMMAND");
     let mut data_size_buffer = [0; COMMAND_DATA_SIZE + 2];
     let n = socket
         .read(&mut data_size_buffer)
@@ -64,7 +71,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
         return Err(());
     }
 
-    println!(" > BROD COMMAND {data_size}");
+    println!(" > BRODCAST COMMAND {data_size}");
 
     let mut buffer = Vec::new();
     buffer.resize(data_size, 0);
@@ -83,24 +90,25 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
     println!("{}", String::from_utf8_lossy(&buffer));
 
     socket
-        .write_all(b"OK\n")
+        .write_all(b"OK")
         .await
         .expect("failed to write into socket");
     Ok(())
 }
 
-async fn broadcast(data: Vec<u8>) {}
+// =============================================
+//             COMMAND FUNCTIONS
 
-// async fn client() {
-//     let mut socket = TcpStream::connect(OTHER_IP)
-//         .await
-//         .expect("failed to connect to client");
-//     socket
-//         .write_all(b"hello world!")
-//         .await
-//         .expect("failed to send data to client");
-//
-//     let mut buffer = [0; 1024];
-//     socket.read(&mut buffer).await.expect("fucked up");
-//     println!("{}", String::from_utf8_lossy(&buffer[..1024]));
-// }
+pub async fn broadcast(data: Vec<u8>) {
+    let mut message = Vec::new();
+    message.extend_from_slice(BROADCAST_CMD);
+    message.extend_from_slice(b" ");
+    message.extend_from_slice(&(data.len() as u32).to_be_bytes());
+    message.extend_from_slice(b" ");
+    message.extend_from_slice(&data);
+    println!(
+        " > Sending BROADCAST: {}",
+        String::from_utf8_lossy(&message)
+    );
+    comm::send_message(&message).await;
+}
