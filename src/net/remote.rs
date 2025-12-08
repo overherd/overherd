@@ -107,7 +107,7 @@ pub async fn broadcast(data: Vec<u8>) {
     let mut message = Vec::new();
     message.extend_from_slice(BROADCAST_CMD);
     message.extend_from_slice(b" ");
-    let hex_len = format!("{:08x}", data.len());
+    let hex_len = format!("{:0>1$x}", data.len(), COMMAND_DATA_SIZE);
     message.extend_from_slice(hex_len.as_bytes());
     message.extend_from_slice(b" ");
     message.extend_from_slice(&data);
@@ -115,5 +115,8 @@ pub async fn broadcast(data: Vec<u8>) {
         " > Sending BROADCAST: {}",
         String::from_utf8_lossy(&message)
     );
-    comm::send_message(&message).await;
+    if let Err(e) = comm::send_message("overherd-node-2:8080", &message).await {
+        eprintln!("Connection failed: {}", e);
+        return;
+    }
 }

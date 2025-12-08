@@ -1,0 +1,21 @@
+services:
+  node:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/overherd/src
+    command: ["cargo", "run"]
+    networks:
+      - p2p-network
+    environment:
+      - RUST_LOG=info
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+    init: true
+
+networks:
+  p2p-network:
+    driver: bridge

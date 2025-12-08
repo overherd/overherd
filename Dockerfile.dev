@@ -1,0 +1,11 @@
+# Devolopment Dockerfile to use in docker-compose.yml
+
+FROM rust:alpine
+
+WORKDIR /overherd
+
+COPY Cargo.toml Cargo.lock ./
+# Force dependency installation before
+RUN mkdir src \
+    && touch src/lib.rs \
+    && cargo build
