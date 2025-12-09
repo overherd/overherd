@@ -1,7 +1,6 @@
 // vim: fdm=indent fdn=1
+use super::{comm, protocol};
 use std::fs;
-
-use super::comm;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
@@ -10,8 +9,6 @@ use tokio::{
 const DATA_SIZE_LIMIT: usize = 5_000_000;
 const COMMAND_SIZE: usize = 4;
 const COMMAND_DATA_SIZE: usize = 8;
-
-const BROADCAST_CMD: &[u8; 4] = b"BROD";
 
 pub async fn process(mut socket: TcpStream) {
     loop {
@@ -29,22 +26,26 @@ pub async fn process(mut socket: TcpStream) {
                 "couldn't parse command: {} {n} {buffer:?}",
                 String::from_utf8_lossy(&buffer)
             );
-            socket.write_all(b"NO").await.expect("");
+            socket.write_all(protocol::NO_REPLY).await.ok();
             return;
         }
 
         let result = match &buffer {
-            BROADCAST_CMD => broadcast_parse(&mut socket).await,
+            protocol::BROADCAST_CMD => broadcast_parse(&mut socket).await,
             _ => {
                 println!("unrecognized command: {}", String::from_utf8_lossy(&buffer));
                 Err(())
             }
         };
 
-        // Send Error message
-        if let Err(_) = result {
-            socket.write_all(b"NO").await.expect("");
-            return;
+        match result {
+            Ok(_) => {
+                socket.write_all(protocol::OK_REPLY).await.ok();
+            }
+            Err(_) => {
+                socket.write_all(protocol::NO_REPLY).await.ok();
+                return;
+            }
         }
     }
 }
@@ -74,8 +75,6 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
         return Err(());
     }
 
-    println!(" > BRODCAST COMMAND {data_size}");
-
     let mut buffer = Vec::new();
     buffer.resize(data_size, 0);
 
@@ -93,19 +92,16 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
     println!("{}", String::from_utf8_lossy(&buffer));
     fs::write("dummy", buffer).expect("fuck i failed");
 
-    socket
-        .write_all(b"OK")
-        .await
-        .expect("failed to write into socket");
+    socket.write_all(protocol::OK_REPLY).await.ok();
     Ok(())
 }
 
 // =============================================
 //             COMMAND FUNCTIONS
 
-pub async fn broadcast(data: Vec<u8>) {
+pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
     let mut message = Vec::new();
-    message.extend_from_slice(BROADCAST_CMD);
+    message.extend_from_slice(protocol::BROADCAST_CMD);
     message.extend_from_slice(b" ");
     let hex_len = format!("{:0>1$x}", data.len(), COMMAND_DATA_SIZE);
     message.extend_from_slice(hex_len.as_bytes());
@@ -117,6 +113,6 @@ pub async fn broadcast(data: Vec<u8>) {
     );
     if let Err(e) = comm::send_message("overherd-node-2:8080", &message).await {
         eprintln!("Connection failed: {}", e);
-        return;
     }
+    Ok(())
 }

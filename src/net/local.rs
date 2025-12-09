@@ -1,5 +1,5 @@
 // vim: fdm=indent fdn=1
-use crate::net::remote::broadcast;
+use super::{protocol, remote::broadcast};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
@@ -25,33 +25,53 @@ pub async fn process(mut socket: TcpStream) {
                 "couldn't parse command: {} {n} {buffer:?}",
                 String::from_utf8_lossy(&buffer)
             );
-            socket.write_all(b"NO").await.expect("");
+            socket.write_all(protocol::NO_REPLY).await.ok();
             return;
         }
 
         let result = match &buffer {
-            b"PUBL" => broadcast_parse(&mut socket).await,
+            protocol::PUBLISH_CMD => publish_parse(&mut socket).await,
+            protocol::NEIGHBOUR_ADD_CMD => add_neightbour_parse(&mut socket).await,
+            protocol::NEIGHBOUR_LIST_CMD => list_neightbour_parse(&mut socket).await,
             _ => {
                 println!("unrecognized command: {}", String::from_utf8_lossy(&buffer));
                 Err(())
             }
         };
 
-        // Send Error message
-        if let Err(_) = result {
-            socket.write_all(b"NO").await.expect("");
-            return;
+        match result {
+            Ok(_) => {
+                socket.write_all(protocol::OK_REPLY).await.ok();
+            }
+            Err(_) => {
+                socket.write_all(protocol::NO_REPLY).await.ok();
+                return;
+            }
         }
     }
 }
 
-async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
+// =============================================
+//             PARSE FUNCTIONS
+
+async fn list_neightbour_parse(socket: &mut TcpStream) -> Result<(), ()> {
+    println!(" > LIST NEIGHBOUR COMMAND");
+    socket.read_u8().await.unwrap_or(0); // read new line
+    list_neighbour(socket).await
+}
+
+async fn add_neightbour_parse(socket: &mut TcpStream) -> Result<(), ()> {
+    println!(" > ADD NEIGHBOUR COMMAND");
+    // TODO parse the ip that should be given
+    socket.read_u8().await.unwrap_or(0); // read new line
+    add_neighbour()
+}
+
+async fn publish_parse(socket: &mut TcpStream) -> Result<(), ()> {
     println!(" > PUBL COMMAND");
     let mut data_size_buffer = [0; COMMAND_DATA_SIZE + 2];
-    let n = socket
-        .read(&mut data_size_buffer)
-        .await
-        .expect("failed to read from socket");
+    let n = socket.read(&mut data_size_buffer).await.unwrap_or(0);
+
     if n != COMMAND_DATA_SIZE + 2 {
         println!("coudln't read lenght");
         return Err(());
@@ -67,8 +87,6 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
         return Err(());
     }
 
-    println!(" > PUBL COMMAND {data_size}");
-
     let mut buffer = Vec::new();
     buffer.resize(data_size, 0);
 
@@ -82,11 +100,17 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
         return Err(());
     }
 
-    broadcast(buffer).await;
+    broadcast(buffer).await?;
+    Ok(())
+}
 
-    socket
-        .write_all(b"OK\n")
-        .await
-        .expect("failed to write into socket");
+// =============================================
+//             COMMAND FUNCTIONS
+
+async fn list_neighbour(socket: &mut TcpStream) -> Result<(), ()> {
+    socket.write_all(b"[]").await.map_err(|_| ())
+}
+
+fn add_neighbour() -> Result<(), ()> {
     Ok(())
 }

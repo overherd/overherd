@@ -3,6 +3,7 @@ use tokio::net::TcpListener;
 use std::io;
 
 pub mod comm;
+pub mod protocol;
 pub mod local;
 pub mod remote;
 
