@@ -7,8 +7,9 @@ pub async fn send_message(addr: &str, msg: &[u8]) -> Result<(), Box<dyn std::err
         .write_all(msg)
         .await
         .expect("failed to send data to client");
-    let mut buffer = [0; 2];
+    let mut buffer = [0; 3];
     socket.read(&mut buffer).await.expect("fucked up");
     println!(" > Got reply {}", String::from_utf8_lossy(&buffer));
+    socket.shutdown().await?;
     Ok(())
 }
