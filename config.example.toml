@@ -1,0 +1,3 @@
+[ports]
+local = 9999
+remote = 8080
