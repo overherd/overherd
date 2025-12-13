@@ -4,6 +4,14 @@
 
 ## Development
 
+### Local
+
+```bash
+export OVERHEARD_CONFIG_PATH="/path/to/config.toml" # simply config.toml for local testing
+```
+
+### Docker
+
 Startup
 
 ```bash

@@ -1,4 +1,5 @@
 pub mod net;
+pub mod settings;
 
 #[tokio::main]
 async fn main() {

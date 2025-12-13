@@ -5,6 +5,7 @@ FROM rust:alpine
 WORKDIR /overherd
 
 COPY Cargo.toml Cargo.lock ./
+COPY config.toml /root/.config/overheard/
 # Force dependency installation before
 RUN mkdir src \
     && touch src/lib.rs \
