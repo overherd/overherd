@@ -11,7 +11,7 @@ pub struct Ports {
 
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
-pub(crate) struct Settings {
+pub struct Settings {
     pub ports: Ports,
 }
 
@@ -21,7 +21,9 @@ impl Settings {
         let default_path = format!("{}/.config/overheard/config.toml", &home);
         let config_path = env::var("OVERHEARD_CONFIG_PATH").unwrap_or(default_path);
         let s = Config::builder()
-            .add_source(File::with_name(&config_path))
+            .set_default("ports.local", "9999")?
+            .set_default("ports.remote", "8080")?
+            .add_source(File::with_name(&config_path).required(false))
             .build()?;
         s.try_deserialize()
     }
