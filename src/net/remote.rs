@@ -1,3 +1,5 @@
+use crate::net::list::get_list;
+
 // vim: fdm=indent fdn=1
 use super::{comm, protocol};
 use std::fs;
@@ -32,6 +34,7 @@ pub async fn process(mut socket: TcpStream) {
 
         let result = match &buffer {
             protocol::BROADCAST_CMD => broadcast_parse(&mut socket).await,
+            protocol::REQ_PEERS_CMD => request_peers_parse(&mut socket).await,
             _ => {
                 println!("unrecognized command: {}", String::from_utf8_lossy(&buffer));
                 Err(())
@@ -100,6 +103,27 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
     fs::write("dummy", data).expect("fuck i failed");
 
     let _ = socket.write_all(protocol::OK_REPLY).await;
+    Ok(())
+}
+
+async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
+    let peers = get_list().await?;
+    let data = peers.join(":");
+
+    let mut message = Vec::new();
+    message.extend_from_slice(protocol::RES_PEERS_CMD);
+    message.extend_from_slice(b" ");
+    let hex_len = format!("{:0>1$x}", data.len(), COMMAND_DATA_SIZE);
+    message.extend_from_slice(hex_len.as_bytes());
+    message.extend_from_slice(b" ");
+
+    let _ = socket.write_all(&message).await;
+    Ok(())
+}
+
+async fn receive_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
+    let data = get_data(socket).await?;
+    println!("{}", String::from_utf8_lossy(&data));
     Ok(())
 }
 

@@ -30,7 +30,7 @@ impl Settings {
         let s = Config::builder()
             .set_default("ports.local", "9999")?
             .set_default("ports.remote", "8080")?
-            .set_default("data.list_path", format!("{}/.config/overheard/list.txt", &home))?
+            .set_default("data.list_path", format!("{}/.config/overheard/", &home))?
             .add_source(File::with_name(&config_path).required(false))
             .build()?;
         s.try_deserialize()
