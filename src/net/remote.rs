@@ -73,7 +73,7 @@ async fn get_data(socket: &mut TcpStream) -> Result<Vec<u8>, ()> {
 
     let mut buffer = Vec::new();
     buffer.resize(data_size, 0);
-    
+
     let n = socket
         .read(&mut buffer)
         .await
@@ -85,7 +85,7 @@ async fn get_data(socket: &mut TcpStream) -> Result<Vec<u8>, ()> {
     }
 
     return Ok(buffer)
-    
+
 }
 
 // =============================================
