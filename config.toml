@@ -1,3 +1,6 @@
 [ports]
 local = 9999
 remote = 8080
+
+[data]
+list_path = "./"

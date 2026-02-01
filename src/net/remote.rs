@@ -50,11 +50,7 @@ pub async fn process(mut socket: TcpStream) {
     }
 }
 
-// =============================================
-//             PARSE FUNCTIONS
-
-async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
-    println!(" > BRODCAST COMMAND");
+async fn get_data(socket: &mut TcpStream) -> Result<Vec<u8>, ()> {
     let mut data_size_buffer = [0; COMMAND_DATA_SIZE + 2];
     let n = socket
         .read(&mut data_size_buffer)
@@ -77,7 +73,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
 
     let mut buffer = Vec::new();
     buffer.resize(data_size, 0);
-
+    
     let n = socket
         .read(&mut buffer)
         .await
@@ -88,16 +84,27 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
         return Err(());
     }
 
-    // TODO do something with the data
-    println!("{}", String::from_utf8_lossy(&buffer));
-    fs::write("dummy", buffer).expect("fuck i failed");
+    return Ok(buffer)
+    
+}
 
-    socket.write_all(protocol::OK_REPLY).await.ok();
+// =============================================
+//             RECEIVE FUNCTIONS
+
+async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
+    println!(" > BRODCAST COMMAND");
+
+    let data = get_data(socket).await?;
+
+    println!("{}", String::from_utf8_lossy(&data));
+    fs::write("dummy", data).expect("fuck i failed");
+
+    let _ = socket.write_all(protocol::OK_REPLY).await;
     Ok(())
 }
 
 // =============================================
-//             COMMAND FUNCTIONS
+//             SEND FUNCTIONS
 
 pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
     let mut message = Vec::new();

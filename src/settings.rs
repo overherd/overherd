@@ -11,8 +11,15 @@ pub struct Ports {
 
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
+pub struct Data {
+    pub list_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(unused)]
 pub struct Settings {
     pub ports: Ports,
+    pub data: Data,
 }
 
 impl Settings {
@@ -23,6 +30,7 @@ impl Settings {
         let s = Config::builder()
             .set_default("ports.local", "9999")?
             .set_default("ports.remote", "8080")?
+            .set_default("data.list_path", format!("{}/.config/overheard/list.txt", &home))?
             .add_source(File::with_name(&config_path).required(false))
             .build()?;
         s.try_deserialize()

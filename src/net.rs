@@ -9,6 +9,7 @@ pub mod comm;
 pub mod local;
 pub mod protocol;
 pub mod remote;
+pub mod list;
 
 pub async fn local_server() -> io::Result<()> {
     let settings = Settings::new().expect("message");
