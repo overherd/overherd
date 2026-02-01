@@ -1,8 +1,10 @@
-use std::collections::HashMap;
-
 // vim: fdm=indent fdn=1
 use super::remote::broadcast;
+use crate::net::gossip::refresh_peers;
+use crate::net::list::update_list;
 use hyper::{Method, Request, Response, StatusCode};
+use std::collections::HashMap;
+use tokio::time::{Duration, interval};
 
 pub async fn process(
     req: Request<hyper::body::Incoming>,
@@ -65,7 +67,16 @@ pub async fn join_cmd(
             return Ok(response);
         }
     };
-    // TODO call function to join peers
+    let _ = update_list(&[peer.clone()]).await;
+
+    tokio::spawn(async {
+        let mut interval = interval(Duration::from_secs(5));
+        loop {
+            interval.tick().await;
+            refresh_peers().await;
+        }
+    });
+
     Ok(Response::new(
         format!("Joining peer \"{}\"\r\n", peer).to_string(),
     ))

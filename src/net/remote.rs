@@ -87,8 +87,7 @@ async fn get_data(socket: &mut TcpStream) -> Result<Vec<u8>, ()> {
         return Err(());
     }
 
-    return Ok(buffer)
-
+    return Ok(buffer);
 }
 
 // =============================================
@@ -106,9 +105,9 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
     Ok(())
 }
 
-async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
+pub async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
     let peers = get_list().await?;
-    let data = peers.join(":");
+    let data = peers.join(":").into_bytes();
 
     let mut message = Vec::new();
     message.extend_from_slice(protocol::RES_PEERS_CMD);
@@ -116,14 +115,9 @@ async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
     let hex_len = format!("{:0>1$x}", data.len(), COMMAND_DATA_SIZE);
     message.extend_from_slice(hex_len.as_bytes());
     message.extend_from_slice(b" ");
+    message.extend_from_slice(&data);
 
     let _ = socket.write_all(&message).await;
-    Ok(())
-}
-
-async fn receive_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
-    let data = get_data(socket).await?;
-    println!("{}", String::from_utf8_lossy(&data));
     Ok(())
 }
 
@@ -146,4 +140,42 @@ pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
         eprintln!("Connection failed: {}", e);
     }
     Ok(())
+}
+
+pub async fn request_peers(peer: String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut message = Vec::new();
+    message.extend_from_slice(protocol::REQ_PEERS_CMD);
+
+    println!("Requesting peers from: {}", peer,);
+    let mut socket = TcpStream::connect(format!("{}:8080", peer).as_str()).await?;
+    socket
+        .write_all(&message)
+        .await
+        .expect("failed to send data to client");
+
+    // get peer reply
+    let mut buffer = [0; COMMAND_SIZE];
+    let n = socket
+        .read(&mut buffer)
+        .await
+        .expect("failed to read from socket");
+    if n == 0 {
+        return Err(format!("").into());
+    }
+
+    if n != COMMAND_SIZE {
+        println!(
+            "couldn't parse command: {} {n} {buffer:?}",
+            String::from_utf8_lossy(&buffer)
+        );
+        socket.write_all(protocol::NO_REPLY).await.ok();
+        return Err(format!("").into());
+    }
+
+    let data = get_data(&mut socket).await.unwrap_or(Vec::new());
+    socket.shutdown().await?;
+    Ok(String::from_utf8_lossy(&data)
+        .split(":")
+        .map(str::to_string)
+        .collect())
 }

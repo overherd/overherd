@@ -4,6 +4,8 @@ FROM rust:1.92.0-alpine
 
 WORKDIR /overherd
 
+RUN apk add curl
+
 COPY Cargo.toml Cargo.lock ./
 COPY config.toml /root/.config/overheard/
 # Force dependency installation before

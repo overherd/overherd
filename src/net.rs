@@ -6,6 +6,7 @@ use crate::settings::Settings;
 use std::io;
 
 pub mod comm;
+pub mod gossip;
 pub mod list;
 pub mod local;
 pub mod protocol;
