@@ -12,8 +12,6 @@ services:
       - RUST_LOG=info
     deploy:
       replicas: 3
-      restart_policy:
-        condition: on-failure
     init: true
 
 networks:

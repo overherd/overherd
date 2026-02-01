@@ -1,11 +1,13 @@
+use hyper::{server::conn::http1, service::service_fn};
+use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 
 use crate::settings::Settings;
 use std::io;
 
 pub mod comm;
-pub mod protocol;
 pub mod local;
+pub mod protocol;
 pub mod remote;
 
 pub async fn local_server() -> io::Result<()> {
@@ -16,7 +18,15 @@ pub async fn local_server() -> io::Result<()> {
         .expect(&format!("Failed binding to {}", local_port));
     loop {
         let (socket, _) = listener.accept().await?;
-        tokio::spawn(async move { local::process(socket).await });
+        tokio::spawn(async move {
+            let io = TokioIo::new(socket);
+            if let Err(err) = http1::Builder::new()
+                .serve_connection(io, service_fn(local::process))
+                .await
+            {
+                eprintln!("Error serving connection: {:?}", err);
+            }
+        });
     }
 }
 

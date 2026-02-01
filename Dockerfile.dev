@@ -1,6 +1,6 @@
 # Devolopment Dockerfile to use in docker-compose.yml
 
-FROM rust:alpine
+FROM rust:1.92.0-alpine
 
 WORKDIR /overherd
 
