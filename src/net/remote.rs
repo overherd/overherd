@@ -151,7 +151,7 @@ pub async fn request_peers(peer: String) -> Result<Vec<String>, Box<dyn std::err
     message.extend_from_slice(protocol::REQ_PEERS_CMD);
 
     println!("Requesting peers from: {}", peer);
-    let mut socket = TcpStream::connect(format!("{}:8080", peer).as_str()).await?;
+    let mut socket = TcpStream::connect(format!("{}:8080", peer)).await?;
     socket
         .write_all(&message)
         .await

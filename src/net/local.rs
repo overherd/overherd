@@ -4,6 +4,7 @@ use crate::net::gossip::refresh_peers;
 use crate::net::list::update_peer_list;
 use hyper::{Method, Request, Response, StatusCode};
 use std::collections::HashMap;
+use tokio::net::lookup_host;
 use tokio::time::{Duration, interval};
 
 pub async fn process(
@@ -67,7 +68,11 @@ pub async fn join_cmd(
             return Ok(response);
         }
     };
-    let _ = update_peer_list(&[peer.clone()]).await;
+
+    let mut addrs = lookup_host(format!("{}:8080", peer)).await.unwrap();
+    if let Some(addr) = addrs.next() {
+        let _ = update_peer_list(&[addr.ip().to_string()]).await;
+    }
 
     tokio::spawn(async {
         let mut interval = interval(Duration::from_secs(5));
