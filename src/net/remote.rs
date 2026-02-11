@@ -136,9 +136,14 @@ pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
         " > Sending BROADCAST: {}",
         String::from_utf8_lossy(&message)
     );
-    if let Err(e) = comm::send_message("overherd-node-2:8080", &message).await {
-        eprintln!("Connection failed: {}", e);
+
+    let peers = get_list().await.unwrap_or(Vec::new());
+    for p in peers {
+        if let Err(e) = comm::send_message(format!("{}:8080", p).as_str(), &message).await {
+            eprintln!("Connection failed: {}", e);
+        }
     }
+
     Ok(())
 }
 
@@ -146,7 +151,7 @@ pub async fn request_peers(peer: String) -> Result<Vec<String>, Box<dyn std::err
     let mut message = Vec::new();
     message.extend_from_slice(protocol::REQ_PEERS_CMD);
 
-    println!("Requesting peers from: {}", peer,);
+    println!("Requesting peers from: {}", peer);
     let mut socket = TcpStream::connect(format!("{}:8080", peer).as_str()).await?;
     socket
         .write_all(&message)
