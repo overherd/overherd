@@ -3,7 +3,7 @@ use std::{fs::{self}, io::ErrorKind};
 use crate::settings::Settings;
 
 
-pub async fn get_list() -> Result<Vec<String>, ()> {
+pub async fn get_peer_list() -> Result<Vec<String>, ()> {
     let settings = Settings::new().expect("message");
     let list_path = settings.data.list_path;
     let filename = format!("{}list.txt", &list_path);
@@ -22,7 +22,7 @@ pub async fn get_list() -> Result<Vec<String>, ()> {
     }
 }
 
-pub async fn update_list(ip_list: &[String]) -> Result<(), ()> {
+pub async fn update_peer_list(ip_list: &[String]) -> Result<(), ()> {
     let settings = Settings::new().expect("message");
     let list_path = settings.data.list_path;
     let filename = format!("{}list.txt", &list_path);

@@ -1,9 +1,9 @@
-use crate::net::{list::get_list, remote};
+use crate::net::{list::get_peer_list, remote};
 
 const MAX_PEERS: usize = 4;
 
 pub async fn refresh_peers() {
-    let peers = get_list().await.unwrap_or(Vec::new());
+    let peers = get_peer_list().await.unwrap_or(Vec::new());
 
     // TODO validate current peer list, drop unresponsive peers
 

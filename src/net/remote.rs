@@ -1,4 +1,4 @@
-use crate::net::list::get_list;
+use crate::net::list::get_peer_list;
 
 // vim: fdm=indent fdn=1
 use super::{comm, protocol};
@@ -106,7 +106,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
 }
 
 pub async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
-    let peers = get_list().await?;
+    let peers = get_peer_list().await?;
     let data = peers.join(":").into_bytes();
 
     let mut message = Vec::new();
@@ -137,13 +137,12 @@ pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
         String::from_utf8_lossy(&message)
     );
 
-    let peers = get_list().await.unwrap_or(Vec::new());
+    let peers = get_peer_list().await.unwrap_or(Vec::new());
     for p in peers {
         if let Err(e) = comm::send_message(format!("{}:8080", p).as_str(), &message).await {
             eprintln!("Connection failed: {}", e);
         }
     }
-
     Ok(())
 }
 

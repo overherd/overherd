@@ -1,7 +1,7 @@
 // vim: fdm=indent fdn=1
 use super::remote::broadcast;
 use crate::net::gossip::refresh_peers;
-use crate::net::list::update_list;
+use crate::net::list::update_peer_list;
 use hyper::{Method, Request, Response, StatusCode};
 use std::collections::HashMap;
 use tokio::time::{Duration, interval};
@@ -67,7 +67,7 @@ pub async fn join_cmd(
             return Ok(response);
         }
     };
-    let _ = update_list(&[peer.clone()]).await;
+    let _ = update_peer_list(&[peer.clone()]).await;
 
     tokio::spawn(async {
         let mut interval = interval(Duration::from_secs(5));
