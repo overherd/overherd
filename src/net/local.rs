@@ -74,6 +74,7 @@ pub async fn join_cmd(
         let _ = update_peer_list(&[addr.ip().to_string()]).await;
     }
 
+    // TODO don't spawn one every time we run this command
     tokio::spawn(async {
         let mut interval = interval(Duration::from_secs(5));
         loop {
@@ -86,3 +87,8 @@ pub async fn join_cmd(
         format!("Joining peer \"{}\"\r\n", peer).to_string(),
     ))
 }
+
+// pub async fn list_peers_cmd(
+//     req: Request<hyper::body::Incoming>,
+// ) -> Result<Response<String>, hyper::Error> {
+// }

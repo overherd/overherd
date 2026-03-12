@@ -1,8 +1,8 @@
-use crate::net::list::get_peer_list;
-
 // vim: fdm=indent fdn=1
+
 use super::{comm, protocol};
-use std::fs;
+use crate::net::list::get_peer_list;
+use std::{collections::HashSet, fs};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
@@ -107,7 +107,11 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
 
 pub async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
     let peers = get_peer_list().await?;
-    let data = peers.join(":").into_bytes();
+    let data = peers
+        .into_iter()
+        .collect::<Vec<String>>()
+        .join(":")
+        .into_bytes();
 
     let mut message = Vec::new();
     message.extend_from_slice(protocol::RES_PEERS_CMD);
@@ -137,7 +141,7 @@ pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
         String::from_utf8_lossy(&message)
     );
 
-    let peers = get_peer_list().await.unwrap_or(Vec::new());
+    let peers = get_peer_list().await.unwrap_or(HashSet::new());
     for p in peers {
         if let Err(e) = comm::send_message(format!("{}:8080", p).as_str(), &message).await {
             eprintln!("Connection failed: {}", e);

@@ -11,7 +11,7 @@ services:
     environment:
       - RUST_LOG=info
     deploy:
-      replicas: 3
+      replicas: 8
     init: true
 
 networks:
