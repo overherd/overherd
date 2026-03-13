@@ -2,6 +2,7 @@
 //
 // Functions for managing the network communication protocol
 
+use crate::net::list::update_peer_list;
 use crate::net::{list::get_peer_list, remote};
 use std::collections::HashSet;
 use std::sync::OnceLock;
@@ -56,16 +57,16 @@ async fn refresh_peers_task() {
 
     if peers.len() < MAX_PEERS {
         let mut new_peers: HashSet<String> = HashSet::new();
-        for p in peers {
+        for p in &peers {
             let more_peers = remote::request_peers(p).await.unwrap_or(Vec::new());
             if !more_peers.is_empty() {
-                println!("{}", more_peers.join(":"));
+                println!("  > {}", more_peers.join(":"));
                 for mp in more_peers {
                     new_peers.insert(mp);
                 }
             }
         }
+        // TODO validate new peers
+        let _ = update_peer_list(peers.union(&new_peers).cloned().collect::<Vec<String>>()).await;
     }
-
-    // TODO validate new peers
 }

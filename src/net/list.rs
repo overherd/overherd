@@ -27,7 +27,7 @@ pub async fn get_peer_list() -> Result<HashSet<String>, ()> {
     }
 }
 
-pub async fn update_peer_list(ip_list: &[String]) -> Result<(), ()> {
+pub async fn update_peer_list(ip_list: Vec<String>) -> Result<(), ()> {
     let settings = Settings::new().expect("message");
     let list_path = settings.data.list_path;
     let filename = format!("{}{}", &list_path, LIST_FILENAME);

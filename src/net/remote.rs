@@ -150,7 +150,7 @@ pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
     Ok(())
 }
 
-pub async fn request_peers(peer: String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub async fn request_peers(peer: &String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut message = Vec::new();
     message.extend_from_slice(protocol::REQ_PEERS_CMD);
 
@@ -182,6 +182,9 @@ pub async fn request_peers(peer: String) -> Result<Vec<String>, Box<dyn std::err
 
     let data = get_data(&mut socket).await.unwrap_or(Vec::new());
     socket.shutdown().await?;
+    if data.is_empty() {
+        return Ok(Vec::new());
+    }
     Ok(String::from_utf8_lossy(&data)
         .split(":")
         .map(str::to_string)
