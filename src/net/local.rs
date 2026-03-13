@@ -5,7 +5,6 @@ use crate::net::list::update_peer_list;
 use hyper::{Method, Request, Response, StatusCode};
 use std::collections::HashMap;
 use tokio::net::lookup_host;
-use tokio::time::{Duration, interval};
 
 pub async fn process(
     req: Request<hyper::body::Incoming>,
@@ -74,21 +73,9 @@ pub async fn join_cmd(
         let _ = update_peer_list(&[addr.ip().to_string()]).await;
     }
 
-    // TODO don't spawn one every time we run this command
-    tokio::spawn(async {
-        let mut interval = interval(Duration::from_secs(5));
-        loop {
-            interval.tick().await;
-            refresh_peers().await;
-        }
-    });
+    refresh_peers().await;
 
     Ok(Response::new(
         format!("Joining peer \"{}\"\r\n", peer).to_string(),
     ))
 }
-
-// pub async fn list_peers_cmd(
-//     req: Request<hyper::body::Incoming>,
-// ) -> Result<Response<String>, hyper::Error> {
-// }
