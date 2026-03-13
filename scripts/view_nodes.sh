@@ -102,17 +102,23 @@ EOF
 python3 -m http.server 7777 2>/dev/null &
 firefox --new-tab http://localhost:7777
 
+containers=$(docker ps --filter "name=overherd-node-" --format "{{.Names}}")
+
+declare -A container_ips
+cached_nodes_list=""
+
+for name in $containers; do
+	node_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")
+	if [[ -n "$node_ip" ]]; then
+		container_ips["$name"]="$node_ip"
+		cached_nodes_list+="$node_ip|$name ($node_ip);"
+	fi
+done
+
 while true; do
-	containers=$(docker ps --filter "name=overherd-node-" --format "{{.Names}}")
-	nodes_list=""
 	edges_list=""
-
-	for name in $containers; do
-		node_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")
-		[[ -z "$node_ip" ]] && continue
-
-		nodes_list+="$node_ip|$name ($node_ip);"
-
+	for name in "${!container_ips[@]}"; do
+		node_ip=${container_ips[$name]}
 		neighbors=$(docker exec "$name" cat list.txt 2>/dev/null || echo "")
 		for neighbor_ip in $neighbors; do
 			if [[ -n "$neighbor_ip" ]]; then
@@ -122,11 +128,9 @@ while true; do
 	done
 
 	jq -n \
-		--arg nodes_raw "$nodes_list" \
+		--arg nodes_raw "$cached_nodes_list" \
 		--arg edges_raw "$edges_list" \
-		'{
-					nodes: ($nodes_raw | split(";") | map(select(. != "") | split("|") | {id: .[0], label: .[1]})),
-					edges: ($edges_raw | split(" ") | map(select(. != "") | split("|") | {from: .[0], to: .[1]}))
-				}' > "$OUTPUT_FILE"
-	sleep 1
+		'{nodes: ($nodes_raw | split(";") | map(select(. != "") | split("|") | {id: .[0], label: .[1]})), edges: ($edges_raw | split(" ") | map(select(. != "") | split("|") | {from: .[0], to: .[1]}))}' > "$OUTPUT_FILE"
+
+	sleep 2
 done
