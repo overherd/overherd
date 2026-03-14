@@ -55,10 +55,10 @@ async fn refresh_peers_task() {
 
     // TODO validate current peer list, drop unresponsive peers
 
+    let mut new_peers: HashSet<String> = HashSet::new();
     if peers.len() < MAX_PEERS {
-        let mut new_peers: HashSet<String> = HashSet::new();
         for p in &peers {
-            let more_peers = remote::request_peers(p).await.unwrap_or(Vec::new());
+            let more_peers = remote::send_request_peers(p).await.unwrap_or(Vec::new());
             if !more_peers.is_empty() {
                 println!("  > {}", more_peers.join(":"));
                 for mp in more_peers {
@@ -66,7 +66,7 @@ async fn refresh_peers_task() {
                 }
             }
         }
-        // TODO validate new peers
-        let _ = update_peer_list(peers.union(&new_peers).cloned().collect::<Vec<String>>()).await;
     }
+    // TODO validate new peers
+    let _ = update_peer_list(peers.union(&new_peers).cloned().collect::<Vec<String>>()).await;
 }

@@ -33,8 +33,8 @@ pub async fn process(mut socket: TcpStream) {
         }
 
         let result = match &buffer {
-            protocol::BROADCAST_CMD => broadcast_parse(&mut socket).await,
-            protocol::REQ_PEERS_CMD => request_peers_parse(&mut socket).await,
+            protocol::BROADCAST_CMD => receive_broadcast(&mut socket).await,
+            protocol::REQ_PEERS_CMD => receive_request_peers(&mut socket).await,
             _ => {
                 println!("unrecognized command: {}", String::from_utf8_lossy(&buffer));
                 Err(())
@@ -93,7 +93,7 @@ async fn get_data(socket: &mut TcpStream) -> Result<Vec<u8>, ()> {
 // =============================================
 //             RECEIVE FUNCTIONS
 
-async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
+async fn receive_broadcast(socket: &mut TcpStream) -> Result<(), ()> {
     println!(" > BRODCAST COMMAND");
 
     let data = get_data(socket).await?;
@@ -105,7 +105,7 @@ async fn broadcast_parse(socket: &mut TcpStream) -> Result<(), ()> {
     Ok(())
 }
 
-pub async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
+pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
     let peers = get_peer_list().await?;
     let data = peers
         .into_iter()
@@ -128,7 +128,7 @@ pub async fn request_peers_parse(socket: &mut TcpStream) -> Result<(), ()> {
 // =============================================
 //             SEND FUNCTIONS
 
-pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
+pub async fn send_broadcast(data: Vec<u8>) -> Result<(), ()> {
     let mut message = Vec::new();
     message.extend_from_slice(protocol::BROADCAST_CMD);
     message.extend_from_slice(b" ");
@@ -150,7 +150,7 @@ pub async fn broadcast(data: Vec<u8>) -> Result<(), ()> {
     Ok(())
 }
 
-pub async fn request_peers(peer: &String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub async fn send_request_peers(peer: &String) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut message = Vec::new();
     message.extend_from_slice(protocol::REQ_PEERS_CMD);
 

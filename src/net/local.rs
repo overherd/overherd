@@ -1,5 +1,5 @@
 // vim: fdm=indent fdn=1
-use super::remote::broadcast;
+use super::remote::send_broadcast;
 use crate::net::gossip::refresh_peers;
 use crate::net::list::update_peer_list;
 use hyper::{Method, Request, Response, StatusCode};
@@ -43,7 +43,7 @@ pub async fn broadcast_cmd(
             return Ok(response);
         }
     };
-    let _ = broadcast(data.as_bytes().to_vec()).await;
+    let _ = send_broadcast(data.as_bytes().to_vec()).await;
     Ok(Response::new("Broadcast sent\r\n".to_string()))
 }
 
