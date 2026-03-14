@@ -6,11 +6,14 @@ use std::{collections::HashSet, fs};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
+    time::Duration,
+    time::timeout,
 };
 
 const DATA_SIZE_LIMIT: usize = 5_000_000;
 const COMMAND_SIZE: usize = 4;
 const COMMAND_DATA_SIZE: usize = 8;
+const PROTOCOL_TIMOUT: u64 = 2;
 
 pub async fn process(mut socket: TcpStream) {
     loop {
@@ -149,38 +152,46 @@ pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
 //             SEND FUNCTIONS
 
 pub async fn send_request_id(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
-    let mut message = Vec::new();
-    message.extend_from_slice(protocol::REQUEST_ID_CMD);
 
-    let mut socket = TcpStream::connect(format!("{}:8080", peer)).await?;
-    socket
-        .write_all(&message)
-        .await
-        .expect("failed to send data to client");
+    async fn _socket(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
+        let mut message = Vec::new();
+        message.extend_from_slice(protocol::REQUEST_ID_CMD);
+        let mut socket = TcpStream::connect(format!("{}:8080", peer)).await?;
+        socket
+            .write_all(&message)
+            .await
+            .expect("failed to send data to client");
 
-    // get peer reply
-    let mut buffer = [0; COMMAND_SIZE];
-    let n = socket
-        .read(&mut buffer)
-        .await
-        .expect("failed to read from socket");
-    if n == 0 {
-        return Err(format!("").into());
+        // get peer reply
+        let mut buffer = [0; COMMAND_SIZE];
+        let n = socket
+            .read(&mut buffer)
+            .await
+            .expect("failed to read from socket");
+        if n == 0 {
+            return Err(format!("").into());
+        }
+
+        if n != COMMAND_SIZE {
+            eprintln!(
+                "couldn't parse command: {} {n} {buffer:?}",
+                String::from_utf8_lossy(&buffer)
+            );
+            socket.write_all(protocol::NO_REPLY).await.ok();
+            return Err(format!("").into());
+        }
+
+        let data = get_data(&mut socket).await.unwrap_or(Vec::new());
+        socket.shutdown().await?;
+
+        Ok(String::from_utf8_lossy(&data).into())
     }
 
-    if n != COMMAND_SIZE {
-        eprintln!(
-            "couldn't parse command: {} {n} {buffer:?}",
-            String::from_utf8_lossy(&buffer)
-        );
-        socket.write_all(protocol::NO_REPLY).await.ok();
-        return Err(format!("").into());
+    match timeout(Duration::from_secs(PROTOCOL_TIMOUT), _socket(peer)).await {
+        Ok(o) => o,
+        Err(_) => Err(format!("timeout").into())
     }
 
-    let data = get_data(&mut socket).await.unwrap_or(Vec::new());
-    socket.shutdown().await?;
-
-    Ok(String::from_utf8_lossy(&data).into())
 }
 
 pub async fn send_broadcast(data: Vec<u8>) -> Result<(), ()> {
