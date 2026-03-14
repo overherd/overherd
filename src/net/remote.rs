@@ -152,7 +152,6 @@ pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
 //             SEND FUNCTIONS
 
 pub async fn send_request_id(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
-
     async fn _socket(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
         let mut message = Vec::new();
         message.extend_from_slice(protocol::REQUEST_ID_CMD);
@@ -189,9 +188,8 @@ pub async fn send_request_id(peer: &String) -> Result<String, Box<dyn std::error
 
     match timeout(Duration::from_secs(PROTOCOL_TIMOUT), _socket(peer)).await {
         Ok(o) => o,
-        Err(_) => Err(format!("timeout").into())
+        Err(_) => Err(format!("timeout").into()),
     }
-
 }
 
 pub async fn send_broadcast(data: Vec<u8>) -> Result<(), ()> {

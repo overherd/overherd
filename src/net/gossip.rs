@@ -2,6 +2,7 @@
 //
 // Functions for managing the network communication protocol
 
+use crate::net::INSTANCE_ID;
 use crate::net::list::update_peer_list;
 use crate::net::{list::get_peer_list, remote};
 use std::collections::HashSet;
@@ -53,20 +54,38 @@ pub async fn refresh_peers() {
 async fn refresh_peers_task() {
     let peers = get_peer_list().await.unwrap_or(HashSet::new());
 
-    // TODO validate current peer list, drop unresponsive peers
+    let mut valid_peers: HashSet<String> = HashSet::new();
+    for p in peers {
+        match remote::send_request_id(&p).await {
+            Ok(_) => {
+                valid_peers.insert(p);
+            }
+            Err(err) => eprintln!("{}", err),
+        };
+    }
 
-    let mut new_peers: HashSet<String> = HashSet::new();
-    if peers.len() < MAX_PEERS {
-        for p in &peers {
+    if valid_peers.len() < MAX_PEERS {
+        'all_peers: for p in &valid_peers.clone() {
             let more_peers = remote::send_request_peers(p).await.unwrap_or(Vec::new());
-            if !more_peers.is_empty() {
-                println!("  > {}", more_peers.join(":"));
-                for mp in more_peers {
-                    new_peers.insert(mp);
+            if more_peers.is_empty() {
+                continue;
+            }
+            println!("  > {}", more_peers.join(":"));
+            for mp in more_peers {
+                match remote::send_request_id(&mp).await {
+                    Ok(uuid) => {
+                        // if it's not our id we add it to the valid_peers list
+                        if uuid != *INSTANCE_ID.get_or_init(|| String::from("")) {
+                            valid_peers.insert(mp);
+                        }
+                    }
+                    Err(err) => eprintln!("{}", err),
+                };
+                if valid_peers.len() >= MAX_PEERS {
+                    break 'all_peers;
                 }
             }
         }
     }
-    // TODO validate new peers
-    let _ = update_peer_list(peers.union(&new_peers).cloned().collect::<Vec<String>>()).await;
+    let _ = update_peer_list(valid_peers.into_iter().collect()).await;
 }
