@@ -1,9 +1,10 @@
 use hyper::{server::conn::http1, service::service_fn};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
+use uuid::Uuid;
 
 use crate::settings::Settings;
-use std::io;
+use std::{io, sync::OnceLock};
 
 pub mod comm;
 pub mod gossip;
@@ -11,6 +12,8 @@ pub mod list;
 pub mod local;
 pub mod protocol;
 pub mod remote;
+
+pub static ID: OnceLock<String> = OnceLock::new();
 
 pub async fn local_server() -> io::Result<()> {
     let settings = Settings::new().expect("message");
@@ -33,6 +36,7 @@ pub async fn local_server() -> io::Result<()> {
 }
 
 pub async fn remote_server() -> io::Result<()> {
+    let _ = ID.set(Uuid::new_v4().to_string());
     let settings = Settings::new().expect("message");
     let remote_port = settings.ports.remote;
     let listener = TcpListener::bind(format!("0.0.0.0:{}", remote_port))
