@@ -12,3 +12,4 @@ hyper = { version = "1.0", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 url = "2.5.8"
 uuid = { version = "1.22.0", features = ["v4"] }
+rand = "0.10.0"

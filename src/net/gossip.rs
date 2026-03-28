@@ -56,43 +56,9 @@ pub async fn refresh_peers() {
  */
 async fn refresh_peers_task() {
     let peers = get_peer_list().await.unwrap_or(HashSet::new());
-
-    let mut valid_peers: HashSet<String> = HashSet::new();
-    // check which current peers are still reacheable
-    for p in peers {
-        match remote::send_request_id(&p).await {
-            Ok(_) => {
-                valid_peers.insert(p);
-            }
-            Err(err) => eprintln!("{}", err),
-        };
-    }
-
-    // if we have space for more peers
-    // request more peers
-    // TODO perform this concurrently and pick random peers from response
-    'all_peers: for p in &valid_peers.clone() {
-        let more_peers = remote::send_request_peers(p).await.unwrap_or(Vec::new());
-        if more_peers.is_empty() {
-            continue;
-        }
-        println!("  > {}", more_peers.join(":"));
-        for mp in more_peers {
-            match remote::send_request_id(&mp).await {
-                Ok(uuid) => {
-                    // if it's not our id we add it to the valid_peers list
-                    if uuid != *INSTANCE_ID.get_or_init(|| String::from("")) {
-                        valid_peers.insert(mp);
-                    }
-                }
-                Err(err) => eprintln!("{}", err),
-            };
-            if valid_peers.len() >= MAX_PEERS {
-                break 'all_peers;
-            }
-        }
-    }
-    let _ = update_peer_list(valid_peers.into_iter().collect()).await;
+    let more_peers = request_more_peers(peers).await;
+    let new_peer_list = generate_new_peer_list(more_peers).await;
+    let _ = update_peer_list(new_peer_list.into_iter().collect()).await;
 }
 
 /**
@@ -114,4 +80,31 @@ async fn request_more_peers(mut peers: HashSet<String>) -> HashSet<String> {
         };
     }
     valid_peers.union(&peers).cloned().collect()
+}
+
+
+/**
+* Generates a randomized peer list based on subset of a list of all possible peers
+* Randomly samples peer list, checks that they are alive and not self.
+* Returns new peer list based on MAX_PEERS
+*/
+async fn generate_new_peer_list(mut peers: HashSet<String>) -> HashSet<String> {
+    let mut new_peer_list: HashSet<String> = HashSet::new();
+    let mut rng = rand::rngs::SmallRng::from_rng(&mut rand::rng());
+
+    while let Some(p) = peers.iter().choose(&mut rng).cloned()
+        && new_peer_list.len() < MAX_PEERS
+    {
+        peers.remove(&p);
+        match remote::send_request_id(&p).await {
+            Ok(uuid) => {
+                // if it's not our id we add it to the valid_peers list
+                if uuid != *INSTANCE_ID.get_or_init(|| String::from("")) {
+                    new_peer_list.insert(p);
+                }
+            }
+            Err(err) => eprintln!("{}", err),
+        };
+    }
+    new_peer_list
 }
