@@ -21,6 +21,8 @@ pub async fn local_server() -> io::Result<()> {
     let listener = TcpListener::bind(format!("127.0.0.1:{}", local_port))
         .await
         .expect(&format!("Failed binding to {}", local_port));
+    // start the refresh peers process on startup
+    gossip::refresh_peers().await;
     loop {
         let (socket, _) = listener.accept().await?;
         tokio::spawn(async move {

@@ -96,6 +96,12 @@ async fn get_data(socket: &mut TcpStream) -> Result<Vec<u8>, ()> {
 
 // =============================================
 //             RECEIVE FUNCTIONS
+
+/*
+ * Protocol function for replying to peer id:
+ *
+ * RSID [size] [node-id]
+ */
 async fn receive_request_id(socket: &mut TcpStream) -> Result<(), ()> {
     println!(" > ID REQUEST");
 
@@ -151,6 +157,13 @@ pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
 // =============================================
 //             SEND FUNCTIONS
 
+/*
+ * Protocol function for requesting peer id:
+ *
+ * RQID
+ *
+ * Returns peer id string
+ */
 pub async fn send_request_id(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
     async fn _socket(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
         let mut message = Vec::new();
