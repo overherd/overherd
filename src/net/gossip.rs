@@ -5,6 +5,8 @@
 use crate::net::INSTANCE_ID;
 use crate::net::list::update_peer_list;
 use crate::net::{list::get_peer_list, remote};
+use rand::SeedableRng;
+use rand::seq::IteratorRandom;
 use std::collections::HashSet;
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
@@ -14,7 +16,7 @@ use tokio::time::{Duration, interval, timeout};
 const PEER_REFRESH_RATE: u64 = 8;
 const PEER_REFRESH_CANCEL_TIMEOUT: u64 = 2;
 const MAX_PEERS: usize = 4;
-const PEER_ROTATION: usize = MAX_PEERS / 2;
+const PEER_SAMPLE: usize = MAX_PEERS / 2;
 
 static REFRESH_TASK_MUTEX: OnceLock<Mutex<Option<JoinHandle<()>>>> = OnceLock::new();
 
@@ -91,4 +93,25 @@ async fn refresh_peers_task() {
         }
     }
     let _ = update_peer_list(valid_peers.into_iter().collect()).await;
+}
+
+/**
+ * Request more peers from a subset of size PEER_SAMPLE from a list of valid ones
+ * Destroy the HashSet given in the process
+ */
+async fn request_more_peers(mut peers: HashSet<String>) -> HashSet<String> {
+    let mut valid_peers: HashSet<String> = HashSet::new();
+    let mut rng = rand::rngs::SmallRng::from_rng(&mut rand::rng());
+    let mut current_peer: usize = 0;
+    while let Some(p) = peers.iter().choose(&mut rng).cloned()
+        && current_peer < PEER_SAMPLE
+    {
+        peers.remove(&p);
+        if let Ok(more_peers) = remote::send_request_peers(&p).await {
+            valid_peers.extend(more_peers);
+            valid_peers.insert(p);
+            current_peer += 1;
+        };
+    }
+    valid_peers.union(&peers).cloned().collect()
 }
