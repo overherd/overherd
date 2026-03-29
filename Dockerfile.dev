@@ -8,7 +8,12 @@ RUN apk add curl
 
 COPY Cargo.toml Cargo.lock ./
 COPY config.toml /root/.config/overheard/
-# Force dependency installation before
+# Force dependency installation before in order to cache it before
 RUN mkdir src \
     && touch src/lib.rs \
     && cargo build
+
+COPY src/ ./src
+RUN cargo build
+
+CMD ["/overherd/target/debug/overherd"]

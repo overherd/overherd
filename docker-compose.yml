@@ -5,13 +5,12 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./src:/overherd/src
-    command: ["cargo", "run"]
     networks:
       - p2p-network
     environment:
       - RUST_LOG=info
     deploy:
-      replicas: 5
+      replicas: 10
     init: true
 
 networks:
