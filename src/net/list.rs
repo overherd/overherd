@@ -7,12 +7,12 @@ use crate::settings::Settings;
 use std::{
     collections::HashSet,
     fs::{self},
-    io::ErrorKind,
+    io::{ErrorKind, Write},
 };
 
 const LIST_FILENAME: &str = "list.txt";
 
-pub async fn get_peer_list() -> Result<HashSet<String>, ()> {
+pub fn get_peer_list() -> Result<HashSet<String>, ()> {
     let settings = Settings::new().expect("message");
     let list_path = settings.data.list_path;
     let filename = format!("{}{}", &list_path, LIST_FILENAME);
@@ -27,10 +27,21 @@ pub async fn get_peer_list() -> Result<HashSet<String>, ()> {
     }
 }
 
-pub async fn update_peer_list(ip_list: Vec<String>) -> Result<(), ()> {
+pub fn update_peer_list(ip_list: Vec<String>) -> Result<(), ()> {
     let settings = Settings::new().expect("message");
     let list_path = settings.data.list_path;
     let filename = format!("{}{}", &list_path, LIST_FILENAME);
     let _ = fs::write(filename, ip_list.join("\n"));
+    Ok(())
+}
+
+pub fn append_peer_list(ip_list: Vec<String>) -> Result<(), ()> {
+    let settings = Settings::new().expect("message");
+    let list_path = settings.data.list_path;
+    let filename = format!("{}{}", &list_path, LIST_FILENAME);
+
+    if let Ok(mut fh) = fs::OpenOptions::new().append(true).open(filename) {
+        let _ = writeln!(&mut fh, "\n{}", ip_list.join("\n"));
+    }
     Ok(())
 }

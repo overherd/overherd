@@ -20,9 +20,7 @@ const PEER_SAMPLE: usize = MAX_PEERS / 2;
 
 static REFRESH_TASK_MUTEX: OnceLock<Mutex<Option<JoinHandle<()>>>> = OnceLock::new();
 
-/**
- * Spawns or restarts the peer refresh task
- */
+/// Spawns or restarts the peer refresh task
 pub async fn refresh_peers() {
     let mutex = REFRESH_TASK_MUTEX.get_or_init(|| Mutex::new(None));
     let mut lock = mutex.lock().await;
@@ -51,20 +49,16 @@ pub async fn refresh_peers() {
     *lock = Some(spawned_task_handle);
 }
 
-/**
- * Refresh peers list
- */
+/// Refresh peers list
 async fn refresh_peers_task() {
-    let peers = get_peer_list().await.unwrap_or(HashSet::new());
+    let peers = get_peer_list().unwrap_or(HashSet::new());
     let more_peers = request_more_peers(peers).await;
     let new_peer_list = generate_new_peer_list(more_peers).await;
-    let _ = update_peer_list(new_peer_list.into_iter().collect()).await;
+    let _ = update_peer_list(new_peer_list.into_iter().collect());
 }
 
-/**
- * Request more peers from a subset of size PEER_SAMPLE from a list of valid ones
- * Destroy the HashSet given in the process
- */
+/// Request more peers from a subset of size PEER_SAMPLE from a list of valid ones
+/// Destroy the HashSet given in the process
 async fn request_more_peers(mut peers: HashSet<String>) -> HashSet<String> {
     let mut valid_peers: HashSet<String> = HashSet::new();
     let mut rng = rand::rngs::SmallRng::from_rng(&mut rand::rng());
@@ -82,12 +76,9 @@ async fn request_more_peers(mut peers: HashSet<String>) -> HashSet<String> {
     valid_peers.union(&peers).cloned().collect()
 }
 
-
-/**
-* Generates a randomized peer list based on subset of a list of all possible peers
-* Randomly samples peer list, checks that they are alive and not self.
-* Returns new peer list based on MAX_PEERS
-*/
+/// Generates a randomized peer list based on subset of a list of all possible peers
+/// Randomly samples peer list, checks that they are alive and not self.
+/// Returns new peer list based on MAX_PEERS
 async fn generate_new_peer_list(mut peers: HashSet<String>) -> HashSet<String> {
     let mut new_peer_list: HashSet<String> = HashSet::new();
     let mut rng = rand::rngs::SmallRng::from_rng(&mut rand::rng());

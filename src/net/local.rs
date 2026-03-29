@@ -70,7 +70,7 @@ pub async fn join_cmd(
 
     let mut addrs = lookup_host(format!("{}:8080", peer)).await.unwrap();
     if let Some(addr) = addrs.next() {
-        let _ = update_peer_list(vec![addr.ip().to_string()]).await;
+        let _ = update_peer_list(vec![addr.ip().to_string()]);
     }
 
     refresh_peers().await;

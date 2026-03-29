@@ -15,18 +15,15 @@ export OVERHEARD_CONFIG_PATH="/path/to/config.toml" # simply config.toml for loc
 Startup
 
 ```bash
-# Starts multiple instances
-docker compose up
+# Starts multiple instances (build is required to rebuild from source changes)
+docker compose up --build
 ```
 
 Connect to instances
 
 ```bash
-docker compose exec node sh # connect to first node
-docker exec -it overherd-node-2 sh # connect to other nodes
+docker exec -it overherd-node-2 sh # connect to nodes
 
 # To send a command right away you can use:
-docker compose exec -T node nc 127.0.0.1 9999 <<< "PUBL 00000006 hello"
-docker exec -i overherd-node-2 nc 127.0.0.1 9999 <<< "PUBL 00000006 hello"
+docker exec overherd-node-1 curl -s localhost:9999/join?peer=overherd-node-2
 ```
-

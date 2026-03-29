@@ -1,7 +1,10 @@
 // vim: fdm=indent fdn=1
 
 use super::{comm, protocol};
-use crate::net::{INSTANCE_ID, list::get_peer_list};
+use crate::net::{
+    INSTANCE_ID,
+    list::{self, get_peer_list},
+};
 use std::{collections::HashSet, fs};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -14,6 +17,8 @@ const DATA_SIZE_LIMIT: usize = 5_000_000;
 const COMMAND_SIZE: usize = 4;
 const COMMAND_DATA_SIZE: usize = 8;
 const PROTOCOL_TIMOUT: u64 = 2;
+
+const LEARN_REQUESTING_PEER_RATIO: f64 = 0.2; // 20 %
 
 pub async fn process(mut socket: TcpStream) {
     loop {
@@ -94,17 +99,13 @@ async fn get_data(socket: &mut TcpStream) -> Result<Vec<u8>, ()> {
     return Ok(buffer);
 }
 
-// =============================================
-//             RECEIVE FUNCTIONS
+/// =============================================
+///             RECEIVE FUNCTIONS
 
-/*
- * Protocol function for replying to peer id:
- *
- * RSID [size] [node-id]
- */
+/// Protocol function for replying to peer id:
+///
+/// RSID [size] [node-id]
 async fn receive_request_id(socket: &mut TcpStream) -> Result<(), ()> {
-    println!(" > ID REQUEST");
-
     if let Some(instance_id) = INSTANCE_ID.get() {
         let mut message = Vec::new();
         message.extend_from_slice(protocol::RESPONSE_ID_CMD);
@@ -135,7 +136,7 @@ async fn receive_broadcast(socket: &mut TcpStream) -> Result<(), ()> {
 }
 
 pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
-    let peers = get_peer_list().await?;
+    let peers = get_peer_list()?;
     let data = peers
         .into_iter()
         .collect::<Vec<String>>()
@@ -150,20 +151,23 @@ pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
     message.extend_from_slice(b" ");
     message.extend_from_slice(&data);
 
+    let r: f64 = rand::random();
+    if r < LEARN_REQUESTING_PEER_RATIO {
+        let _ = list::append_peer_list(vec![socket.peer_addr().unwrap().ip().to_string()]);
+    }
+
     let _ = socket.write_all(&message).await;
     Ok(())
 }
 
-// =============================================
-//             SEND FUNCTIONS
+/// =============================================
+///             SEND FUNCTIONS
 
-/*
- * Protocol function for requesting peer id:
- *
- * RQID
- *
- * Returns peer id string
- */
+/// Protocol function for requesting peer id:
+///
+/// RQID
+///
+/// Returns peer id string
 pub async fn send_request_id(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
     async fn _socket(peer: &String) -> Result<String, Box<dyn std::error::Error>> {
         let mut message = Vec::new();
@@ -218,7 +222,7 @@ pub async fn send_broadcast(data: Vec<u8>) -> Result<(), ()> {
         String::from_utf8_lossy(&message)
     );
 
-    let peers = get_peer_list().await.unwrap_or(HashSet::new());
+    let peers = get_peer_list().unwrap_or(HashSet::new());
     for p in peers {
         if let Err(e) = comm::send_message(format!("{}:8080", p).as_str(), &message).await {
             eprintln!("Connection failed: {}", e);
