@@ -19,8 +19,6 @@ const COMMAND_SIZE: usize = 4;
 const COMMAND_DATA_SIZE: usize = 8;
 const PROTOCOL_TIMOUT: u64 = 2;
 
-const LEARN_REQUESTING_PEER_RATIO: f64 = 0.2; // 20 %
-
 pub async fn process(mut socket: TcpStream) {
     loop {
         let mut buffer = [0; COMMAND_SIZE];
