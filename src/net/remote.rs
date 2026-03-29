@@ -1,5 +1,6 @@
 // vim: fdm=indent fdn=1
 
+use crate::settings::Settings;
 use super::{comm, protocol};
 use crate::net::{
     INSTANCE_ID,
@@ -136,6 +137,7 @@ async fn receive_broadcast(socket: &mut TcpStream) -> Result<(), ()> {
 }
 
 pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
+    let settings = Settings::get();
     let peers = get_peer_list()?;
     let data = peers
         .into_iter()
@@ -152,7 +154,7 @@ pub async fn receive_request_peers(socket: &mut TcpStream) -> Result<(), ()> {
     message.extend_from_slice(&data);
 
     let r: f64 = rand::random();
-    if r < LEARN_REQUESTING_PEER_RATIO {
+    if r < settings.gossip.learn_requesting_peer_ratio {
         let _ = list::append_peer_list(vec![socket.peer_addr().unwrap().ip().to_string()]);
     }
 

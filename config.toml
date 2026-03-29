@@ -4,3 +4,10 @@ remote = 8080
 
 [data]
 list_path = "./"
+
+[gossip]
+peer_refresh_rate = 8
+peer_refresh_cancel_timeout = 2
+max_peers = 4
+peer_sample = 2
+learn_requesting_peer_ratio = 0.2

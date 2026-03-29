@@ -5,6 +5,7 @@
 use crate::net::INSTANCE_ID;
 use crate::net::list::update_peer_list;
 use crate::net::{list::get_peer_list, remote};
+use crate::settings::Settings;
 use rand::SeedableRng;
 use rand::seq::IteratorRandom;
 use std::collections::HashSet;
@@ -13,15 +14,11 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::{Duration, interval, timeout};
 
-const PEER_REFRESH_RATE: u64 = 8;
-const PEER_REFRESH_CANCEL_TIMEOUT: u64 = 2;
-const MAX_PEERS: usize = 4;
-const PEER_SAMPLE: usize = MAX_PEERS / 2;
-
 static REFRESH_TASK_MUTEX: OnceLock<Mutex<Option<JoinHandle<()>>>> = OnceLock::new();
 
 /// Spawns or restarts the peer refresh task
 pub async fn refresh_peers() {
+    let settings = Settings::get();
     let mutex = REFRESH_TASK_MUTEX.get_or_init(|| Mutex::new(None));
     let mut lock = mutex.lock().await;
 
@@ -29,7 +26,7 @@ pub async fn refresh_peers() {
     if let Some(handle) = lock.take() {
         handle.abort();
         // wait for task to finish but use a timeout
-        match timeout(Duration::from_secs(PEER_REFRESH_CANCEL_TIMEOUT), handle).await {
+        match timeout(Duration::from_secs(settings.gossip.peer_refresh_cancel_timeout), handle).await {
             Ok(_) => {}
             Err(_) => {
                 eprintln!("Warning: Previous task is stuck! Spawning new one anyway.");
@@ -38,7 +35,7 @@ pub async fn refresh_peers() {
     }
 
     let spawned_task_handle = tokio::spawn(async {
-        let mut i = interval(Duration::from_secs(PEER_REFRESH_RATE));
+        let mut i = interval(Duration::from_secs(settings.gossip.peer_refresh_rate));
         i.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             i.tick().await;
@@ -60,11 +57,12 @@ async fn refresh_peers_task() {
 /// Request more peers from a subset of size PEER_SAMPLE from a list of valid ones
 /// Destroy the HashSet given in the process
 async fn request_more_peers(mut peers: HashSet<String>) -> HashSet<String> {
+    let settings = Settings::get();
     let mut valid_peers: HashSet<String> = HashSet::new();
     let mut rng = rand::rngs::SmallRng::from_rng(&mut rand::rng());
     let mut current_peer: usize = 0;
     while let Some(p) = peers.iter().choose(&mut rng).cloned()
-        && current_peer < PEER_SAMPLE
+        && current_peer < settings.gossip.peer_sample
     {
         peers.remove(&p);
         if let Ok(more_peers) = remote::send_request_peers(&p).await {
@@ -80,11 +78,12 @@ async fn request_more_peers(mut peers: HashSet<String>) -> HashSet<String> {
 /// Randomly samples peer list, checks that they are alive and not self.
 /// Returns new peer list based on MAX_PEERS
 async fn generate_new_peer_list(mut peers: HashSet<String>) -> HashSet<String> {
+    let settings = Settings::get();
     let mut new_peer_list: HashSet<String> = HashSet::new();
     let mut rng = rand::rngs::SmallRng::from_rng(&mut rand::rng());
 
     while let Some(p) = peers.iter().choose(&mut rng).cloned()
-        && new_peer_list.len() < MAX_PEERS
+        && new_peer_list.len() < settings.gossip.max_peers
     {
         peers.remove(&p);
         match remote::send_request_id(&p).await {

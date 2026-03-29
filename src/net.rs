@@ -16,8 +16,8 @@ pub mod remote;
 pub static INSTANCE_ID: OnceLock<String> = OnceLock::new();
 
 pub async fn local_server() -> io::Result<()> {
-    let settings = Settings::new().expect("message");
-    let local_port = settings.ports.local;
+    let settings = Settings::get();
+    let local_port = &settings.ports.local;
     let listener = TcpListener::bind(format!("127.0.0.1:{}", local_port))
         .await
         .expect(&format!("Failed binding to {}", local_port));
@@ -39,8 +39,8 @@ pub async fn local_server() -> io::Result<()> {
 
 pub async fn remote_server() -> io::Result<()> {
     let _ = INSTANCE_ID.set(Uuid::new_v4().to_string());
-    let settings = Settings::new().expect("message");
-    let remote_port = settings.ports.remote;
+    let settings = Settings::get();
+    let remote_port = &settings.ports.remote;
     let listener = TcpListener::bind(format!("0.0.0.0:{}", remote_port))
         .await
         .expect(&format!("Failed binding to port {}", remote_port));
