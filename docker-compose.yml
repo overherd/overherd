@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./src:/overherd/src
+      - ./scripts/web_view/out:/overherd/output
     networks:
       - p2p-network
     environment:

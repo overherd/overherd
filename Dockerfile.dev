@@ -16,4 +16,7 @@ COPY config.toml /root/.config/overheard/
 COPY src/ ./src
 RUN cargo build
 
+COPY entrypoint.sh ./entrypoint.sh
+ENTRYPOINT ["/overherd/entrypoint.sh"]
+
 CMD ["/overherd/target/debug/overherd"]

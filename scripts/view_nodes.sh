@@ -47,7 +47,7 @@ cat >index.html <<'EOF'
     </div>
 
     <div id="leaderboard" class="panel">
-        <h3>Node Leaderboard</h3>
+        <h3>Node</h3>
         <div id="leaderboard-content">Scanning network...</div>
     </div>
 
@@ -211,7 +211,7 @@ EOF
 python3 -m http.server 7777 2>/dev/null &
 firefox --new-tab http://localhost:7777
 
-containers=$(docker ps --filter "name=overherd-node-" --format "{{.Names}}")
+containers=$(docker ps --filter "name=overherd-node-" --format "{{.ID}}")
 
 declare -A container_ips
 cached_nodes_list=""
@@ -228,7 +228,7 @@ while true; do
     edges_list=""
     for name in "${!container_ips[@]}"; do
         node_ip=${container_ips[$name]}
-        neighbors=$(docker exec "$name" cat list.txt 2>/dev/null || echo "")
+        neighbors=$(cat "./out/${name}.dat")
         for neighbor_ip in $neighbors; do
             if [[ -n "$neighbor_ip" ]]; then
                 edges_list+="$node_ip|$neighbor_ip "

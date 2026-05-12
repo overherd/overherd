@@ -1,11 +1,11 @@
 // vim: fdm=indent fdn=1
 
-use crate::settings::Settings;
 use super::{comm, protocol};
 use crate::net::{
     INSTANCE_ID,
     list::{self, get_peer_list},
 };
+use crate::settings::Settings;
 use std::{collections::HashSet, fs};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},

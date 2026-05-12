@@ -8,16 +8,17 @@ use std::{
     collections::HashSet,
     fs::{self},
     io::{ErrorKind, Write},
+    path::{Path, PathBuf},
 };
 
-const LIST_FILENAME: &str = "list.txt";
-
-pub fn get_peer_list() -> Result<HashSet<String>, ()> {
+fn get_list_path() -> PathBuf {
     let settings = Settings::get();
-    let list_path = &settings.data.list_path;
-    let filename = format!("{}{}", &list_path, LIST_FILENAME);
+    Path::new(&settings.data.list_path).join(&settings.data.list_name)
+}
 
-    match fs::read_to_string(filename) {
+/// Return current list of peers
+pub fn get_peer_list() -> Result<HashSet<String>, ()> {
+    match fs::read_to_string(get_list_path()) {
         Ok(contents) => Ok(contents.lines().map(String::from).collect()),
         Err(e) if e.kind() == ErrorKind::NotFound => Ok(HashSet::new()),
         Err(e) => {
@@ -27,20 +28,18 @@ pub fn get_peer_list() -> Result<HashSet<String>, ()> {
     }
 }
 
+/// Replace current peer list with the given one
 pub fn update_peer_list(ip_list: Vec<String>) -> Result<(), ()> {
-    let settings = Settings::get();
-    let list_path = &settings.data.list_path;
-    let filename = format!("{}{}", &list_path, LIST_FILENAME);
-    let _ = fs::write(filename, ip_list.join("\n"));
+    if ip_list.len() == 0 {
+        return Ok(());
+    }
+    let _ = fs::write(get_list_path(), ip_list.join("\n"));
     Ok(())
 }
 
+/// Append peer list to the existing one
 pub fn append_peer_list(ip_list: Vec<String>) -> Result<(), ()> {
-    let settings = Settings::get();
-    let list_path = &settings.data.list_path;
-    let filename = format!("{}{}", &list_path, LIST_FILENAME);
-
-    if let Ok(mut fh) = fs::OpenOptions::new().append(true).open(filename) {
+    if let Ok(mut fh) = fs::OpenOptions::new().append(true).open(get_list_path()) {
         let _ = writeln!(&mut fh, "\n{}", ip_list.join("\n"));
     }
     Ok(())
